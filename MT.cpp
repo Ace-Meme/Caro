@@ -1,4 +1,6 @@
- /*
+/****************************************************************************
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+ 
  http://www.cocos2d-x.org
  
  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,20 +22,15 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-#include "HelloWorldScene.h"
+#include "MT.h"
 #include "Pause.h"
-#include "Start.h"
 #include "ui/CocosGUI.h"
 #include "ui/UIWidget.h"
 #include <functional>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <random>
 #include "Node.h"
-#include "network/WebSocket.h"
-#include "network/SocketIO.h"
-//#include "tictactoe.h"
 
 USING_NS_CC;
 
@@ -42,27 +39,27 @@ const int grid_pos_y = 0;
 const int size_of_caro = 64;
 
 
-bool turn_1;
-std::vector<std::vector<int>> board_number_1;
-std::vector<std::vector<Vec2>> caro_position_1;
-std::vector<ui::Button*> button_grid_1;
-Label* label_1;
-Menu* menu_1;
+bool turn;
+std::vector<std::vector<int>> board_number;
+std::vector<std::vector<Vec2>> caro_position;
+std::vector<ui::Button*> button_grid;
+Label* label;
+Menu* menu_2;
 
-Scene* HelloWorld::createScene()
+Scene* MT::createScene()
 {
-    return HelloWorld::create();
+    return MT::create();
 }
 
 // Print useful error message instead of segfaulting when files are not there.
 static void problemLoading(const char* filename)
 {
     printf("Error while loading: %s\n", filename);
-    printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in HelloWorldScene.cpp\n");
+    printf("Depending on how you compiled you might have to add 'Resources/' in front of filenames in MTScene.cpp\n");
 }
 
 // on "init" you need to initialize your instance
-bool HelloWorld::init()
+bool MT::init()
 {
     //////////////////////////////
     // 1. super init first
@@ -75,20 +72,20 @@ bool HelloWorld::init()
     Vec2 origin = Director::getInstance()->getVisibleOrigin();
     auto director = Director::getInstance();
 
-    turn_1 = false;
-    label_1 = Label::createWithTTF("Normal", "fonts/Marker Felt.ttf", 24);
-    if (label_1 == nullptr)
+    turn = false;
+    label = Label::createWithTTF("Monte Calo", "fonts/Marker Felt.ttf", 24);
+    if (label == nullptr)
     {
         problemLoading("'fonts/Marker Felt.ttf'");
     }
     else
     {
-        // position the label_1 on the center of the screen
-        label_1->setPosition(Vec2(origin.x + visibleSize.width / 2,
-            origin.y + visibleSize.height - label_1->getContentSize().height));
+        // position the label on the center of the screen
+        label->setPosition(Vec2(origin.x + visibleSize.width / 2,
+            origin.y + visibleSize.height - label->getContentSize().height));
 
-        // add the label_1 as a child to this layer
-        this->addChild(label_1, 1);
+        // add the label as a child to this layer
+        this->addChild(label, 1);
     }
 
     int start_pos_x = origin.x + visibleSize.width / 2 - size_of_caro * 4;
@@ -101,69 +98,67 @@ bool HelloWorld::init()
             v.push_back(0);
             vec.push_back(Vec2(start_pos_x + size_of_caro * j, start_pos_y));
         }
-        board_number_1.push_back(v);
-        caro_position_1.push_back(vec);
+        board_number.push_back(v);
+        caro_position.push_back(vec);
         start_pos_y -= size_of_caro;
     }
     ////////////////////////-------------------------Check WINNER
-    auto checkWinner = [this](int row, int col, bool t) -> bool {
+    auto checkWinner = [](int row, int col, bool t) -> bool {
         int temp;
         if (t) temp = 1;
         else temp = -1;
-        board_number_1[row][col] = temp;
+        board_number[row][col] = temp;
         std::string s = t ? "X" : "O";
-        //int temp = board_number_1[row][col];
+        //int temp = board_number[row][col];
 
         //////////////-----------Vertical check
         int right_half = 0;
         int left_half = 0;
         for (int i = 1; i < 5; i++) {
-            if (row + i > 8 || board_number_1[row + i][col] != temp) break;
+            if (row + i > 8 || board_number[row + i][col] != temp) break;
             else right_half++;
         }
         for (int i = 1; i < 5; i++) {
-            if (row - i < 0 || board_number_1[row - i][col] != temp) break;
+            if (row - i < 0 || board_number[row - i][col] != temp) break;
             else left_half++;
         }
         if (right_half + left_half >= 4) {
-            label_1->setString(s + " win!");
-            menu_1->setVisible(true);
+            label->setString(s + " win!");
+            menu_2->setVisible(true);
             return true;
         }
-        //if (right_half + left_half >= 4) Director::getInstance()->stopAnimation();
 
         ///////////----------------Horizontal check
         right_half = 0;
         left_half = 0;
         for (int i = 1; i < 5; i++) {
-            if (col + i > 8 || board_number_1[row][col + i] != temp) break;
+            if (col + i > 8 || board_number[row][col + i] != temp) break;
             else right_half++;
         }
         for (int i = 1; i < 5; i++) {
-            if (col - i < 0 || board_number_1[row][col - i] != temp) break;
+            if (col - i < 0 || board_number[row][col - i] != temp) break;
             else left_half++;
         }
         if (right_half + left_half >= 4) {
-            label_1->setString(s + " win!");
-            menu_1->setVisible(true);
+            label->setString(s + " win!");
+            menu_2->setVisible(true);
             return true;
         }
-        //if (right_half + left_half >= 4) Director::getInstance()->pause();
 
         ///////////------------Main cross check
         right_half = 0;
         left_half = 0;
         for (int i = 1; i < 5; i++) {
-            if (col + i > 8 || row + i > 8 || board_number_1[row + i][col + i] != temp) break;
+            if (col + i > 8 || row + i > 8 || board_number[row + i][col + i] != temp) break;
             else right_half++;
         }
         for (int i = 1; i < 5; i++) {
-            if (col - i < 0 || row - i < 0 || board_number_1[row - i][col - i] != temp) break;
+            if (col - i < 0 || row - i < 0 || board_number[row - i][col - i] != temp) break;
             else left_half++;
         }
         if (right_half + left_half >= 4) {
-            label_1->setString(s + " win!");
-            menu_1->setVisible(true);
+            label->setString(s + " win!");
+            menu_2->setVisible(true);
             return true;
         }
 
@@ -171,16 +166,16 @@ bool HelloWorld::init()
         right_half = 0;
         left_half = 0;
         for (int i = 1; i < 5; i++) {
-            if (col + i > 8 || row - i < 0 || board_number_1[row - i][col + i] != temp) break;
+            if (col + i > 8 || row - i < 0 || board_number[row - i][col + i] != temp) break;
             else right_half++;
         }
         for (int i = 1; i < 5; i++) {
-            if (col - i < 0 || row + i > 8 || board_number_1[row + i][col - i] != temp) break;
+            if (col - i < 0 || row + i > 8 || board_number[row + i][col - i] != temp) break;
             else left_half++;
         }
         if (right_half + left_half >= 4) {
-            label_1->setString(s + " win!");
-            menu_1->setVisible(true);
+            label->setString(s + " win!");
+            menu_2->setVisible(true);
             return true;
         }
     };
@@ -199,18 +194,7 @@ bool HelloWorld::init()
         //eventTouch.release();
     };
     
-    auto randommove = []() -> std::vector<int> {
-        for (int i = 0; i < 9; i++) {
-            for (int j = 0; j < 9; j++) {
-                if (board_number_1[i][j] == 0) {
-                    std::vector<int> v;
-                    v.push_back(i);
-                    v.push_back(j);
-                    return v;
-                }
-            }
-        }
-    };
+    
     //////////////////////////// 9X9 BUTTON
     start_pos_x = origin.x + visibleSize.width / 2 - size_of_caro * 4;
     start_pos_y = origin.y + visibleSize.height / 2 + size_of_caro * 4;
@@ -222,7 +206,7 @@ bool HelloWorld::init()
             button->loadTextureNormal("normal.png");
             button->setTitleText("Button Text");
             button->setPosition(Vec2(start_pos_x + size_of_caro * j, start_pos_y));
-            button->addTouchEventListener(CC_CALLBACK_2(HelloWorld::touchHandler, this, i, j));
+            button->addTouchEventListener(CC_CALLBACK_2(MT::touchHandler, this, i, j));
             this->addChild(button, 1);
         }
         start_pos_y -= size_of_caro;
@@ -235,43 +219,54 @@ bool HelloWorld::init()
             button->loadTextureNormal("normal.png");
             button->setTitleText("Button Text");
             button->setPosition(Vec2(start_pos_x + size_of_caro * j, start_pos_y));
-            button->addTouchEventListener([i, j, checkWinner, fireEvent, randommove](Ref* sender, ui::Widget::TouchEventType type) {
+            button->addTouchEventListener([i, j, checkWinner, fireEvent](Ref* sender, ui::Widget::TouchEventType type) {
                 auto temp = dynamic_cast<ui::Button*>(sender);
                 if (type == ui::Widget::TouchEventType::ENDED)
                 {
-                    //logic win/lose, turn_1 around, send location
-                    if(turn_1) temp->loadTextureDisabled("x.png");
+                    //logic win/lose, turn around, send location
+                    if(turn) temp->loadTextureDisabled("x.png");
                     else temp->loadTextureDisabled("o.png");
                     //temp->loadTextureDisabled("o.png");
                     temp->setEnabled(false);
-                    //text_label_1 << i << "," << j << ";";
+                    //text_label << i << "," << j << ";";
                     temp->setTitleText(std::to_string(i) + ";" + std::to_string(j));
                     temp->setTitleColor(Color3B::BLACK);
-                    if (checkWinner(i, j, turn_1)) return;
-                    turn_1 = !turn_1;
-                    //fireEvent(caro_position_1[4][4].x, caro_position_1[4][4].y);
+                    if(checkWinner(i, j, turn)) return;
+                    turn = !turn;
+                    //fireEvent(caro_position[4][4].x, caro_position[4][4].y);
                     ////////////////////////-----------------AI
-                    
-                    std::vector<int> move = randommove();
+                    int** board = new int* [9];
+                    for (int row = 0; row < 9; ++row) {
+                        board[row] = new int[9];
 
-                    
-                    temp = button_grid_1[(move[0] * 9) + (move[1] + 1) - 1];
-                    //temp = button_grid_1[4];
-                    if (turn_1) temp->loadTextureDisabled("x.png");
+                        for (int col = 0; col < 9; ++col) {
+                            board[row][col] = board_number[row][col];
+                        }
+                    }
+                    std::vector<int> move = MCST(board);
+
+                    for (int row = 0; row < 9; ++row) {
+                        delete board[row];
+                        board[row] = nullptr;
+                    }
+                    board = nullptr;
+                    temp = button_grid[(move[0] * 9) + (move[1] + 1) - 1];
+                    //temp = button_grid[4];
+                    if (turn) temp->loadTextureDisabled("x.png");
                     else temp->loadTextureDisabled("o.png");
                     //temp->loadTextureDisabled("o.png");
                     temp->setEnabled(false);
-                    //text_label_1 << i << "," << j << ";";
+                    //text_label << i << "," << j << ";";
                     temp->setTitleText(std::to_string(move[0]) + ";" + std::to_string(move[1]));
                     temp->setTitleColor(Color3B::BLACK);
-                    checkWinner(move[0], move[1], turn_1);
-                    turn_1 = !turn_1;
+                    checkWinner(move[0], move[1], turn);
+                    turn = !turn;
 
                     //std::cout << "Button 1 clicked" << std::endl;
                 }
             });
             this->addChild(button, 1);
-            button_grid_1.push_back(button);
+            button_grid.push_back(button);
         }
         start_pos_y -= size_of_caro;
     }
@@ -281,11 +276,11 @@ bool HelloWorld::init()
     //    you may modify it.
 
     // add a "close" icon to exit the progress. it's an autorelease object
-    
+    /*
     auto closeItem = MenuItemImage::create(
                                            "CloseNormal.png",
                                            "CloseSelected.png",
-                                           CC_CALLBACK_1(HelloWorld::menuCloseCallback, this));
+                                           CC_CALLBACK_1(MT::menuCloseCallback, this));
 
     if (closeItem == nullptr ||
         closeItem->getContentSize().width <= 0 ||
@@ -305,7 +300,55 @@ bool HelloWorld::init()
     menu->setPosition(Vec2::ZERO);
     this->addChild(menu, 1);
 
-    auto end = MenuItemImage::create("end.png", "end.png", CC_CALLBACK_1(HelloWorld::newGame, this));
+    /////////////////////////////
+    // 3. add your codes below...
+
+    // add a label shows "Hello World"
+    // create and initialize a label
+
+
+    // add "MT" splash screen"
+    auto sprite = Sprite::create("MT.png");
+    if (sprite == nullptr)
+    {
+        problemLoading("'MT.png'");
+    }
+    else
+    {
+        // position the sprite on the center of the screen
+        sprite->setPosition(Vec2(visibleSize.width/2 + origin.x, visibleSize.height/2 + origin.y));
+
+        // add the sprite as a child to this layer
+        this->addChild(sprite, 0);
+    }
+    return true;
+    */
+    ////////////// BOARD
+
+    auto closeItem = MenuItemImage::create(
+        "CloseNormal.png",
+        "CloseSelected.png",
+        CC_CALLBACK_1(MT::menuCloseCallback, this));
+
+    if (closeItem == nullptr ||
+        closeItem->getContentSize().width <= 0 ||
+        closeItem->getContentSize().height <= 0)
+    {
+        problemLoading("'CloseNormal.png' and 'CloseSelected.png'");
+    }
+    else
+    {
+        float x = origin.x + visibleSize.width - closeItem->getContentSize().width / 2;
+        float y = origin.y + closeItem->getContentSize().height / 2;
+        closeItem->setPosition(Vec2(x, y));
+    }
+
+    // create menu, it's an autorelease object
+    auto menu = Menu::create(closeItem, NULL);
+    menu->setPosition(Vec2::ZERO);
+    this->addChild(menu, 1);
+
+    auto end = MenuItemImage::create("end.png", "end.png", CC_CALLBACK_1(MT::newgame, this));
     if (end == nullptr ||
         end->getContentSize().width <= 0 ||
         end->getContentSize().height <= 0)
@@ -318,35 +361,11 @@ bool HelloWorld::init()
         float y = origin.y + visibleSize.height / 2;
         end->setPosition(Vec2(x, y));
     }
-    menu_1 = Menu::create(end, NULL);
-    menu_1->setPosition(Vec2::ZERO);
-    this->addChild(menu_1, 2);
-    menu_1->setVisible(false);
-    /*
-    /////////////////////////////
-    // 3. add your codes below...
+    menu_2 = Menu::create(end, NULL);
+    menu_2->setPosition(Vec2::ZERO);
+    this->addChild(menu_2, 2);
+    menu_2->setVisible(false);
 
-    // add a label_1 shows "Hello World"
-    // create and initialize a label_1
-
-
-    // add "HelloWorld" splash screen"
-    auto sprite = Sprite::create("HelloWorld.png");
-    if (sprite == nullptr)
-    {
-        problemLoading("'HelloWorld.png'");
-    }
-    else
-    {
-        // position the sprite on the center of the screen
-        sprite->setPosition(Vec2(visibleSize.width/2 + origin.x, visibleSize.height/2 + origin.y));
-
-        // add the sprite as a child to this layer
-        this->addChild(sprite, 0);
-    }
-    return_1 true;
-    */
-    ////////////// BOARD
     auto grid = Sprite::create("grid.png");
     if(grid == nullptr)
     {
@@ -365,7 +384,7 @@ bool HelloWorld::init()
 }
 
 
-void HelloWorld::menuCloseCallback(Ref* pSender)
+void MT::menuCloseCallback(Ref* pSender)
 {
     //Close the cocos2d-x game scene and quit the application
     auto pause = Pause::createScene();
@@ -375,10 +394,11 @@ void HelloWorld::menuCloseCallback(Ref* pSender)
 
     //EventCustom customEndEvent("game_scene_close_event");
     //_eventDispatcher->dispatchEvent(&customEndEvent);
+
+
 }
 
-void HelloWorld::newGame(cocos2d::Ref* s) {
-    //auto newgame = Start::createScene();
-    //Director::getInstance()->replaceScene(newgame);
+void MT::newgame(Ref* s) {
     return;
 }
+

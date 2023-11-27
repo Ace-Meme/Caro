@@ -22,15 +22,15 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-#ifndef __HELLOWORLD_SCENE_H__
-#define __HELLOWORLD_SCENE_H__
+#ifndef __END_H__
+#define __END_H__
 
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
 #include "ui/UIWidget.h"
 #include <vector>
 
-class HelloWorld : public cocos2d::Scene
+class End : public cocos2d::Scene
 {
 private:
     
@@ -43,11 +43,8 @@ public:
     // a selector callback
     void menuCloseCallback(cocos2d::Ref* pSender);
 
-    void newGame(cocos2d::Ref* s);
-
-    
     // implement the "static create()" method manually
-    CREATE_FUNC(HelloWorld);
+    CREATE_FUNC(End, int n);
 };
 
 #endif // __HELLOWORLD_SCENE_H__
